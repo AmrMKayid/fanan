@@ -1,0 +1,19 @@
+version: '3.9'
+
+services:
+  fanan:
+    image: fanan:dev
+    stdin_open: true
+    tty: true
+    ipc: host
+    network_mode: host
+    build:
+      context: .
+      ssh:
+        - default
+      dockerfile: docker/nvidia/Dockerfile
+    volumes:
+      - ./:/fanan
+      - ~/.ssh:/root/.ssh
+      - ~/.netrc:/root/.netrc
+      - ~/.config/gcloud:/root/.config/gcloud
