@@ -1,4 +1,3 @@
-import logging
 from functools import partial
 from typing import Any, Tuple
 
@@ -8,6 +7,7 @@ import jax.numpy as jnp
 import optax
 from flax.core import FrozenDict
 from jax.sharding import PositionalSharding
+from tqdm import tqdm
 
 from fanan.config.base import Config
 from fanan.modeling.architectures import Architecture, register_architecture
@@ -33,9 +33,8 @@ class DDIMTrainState(TrainState):
 
 class DDIMModel(nn.Module):
     # UNet parameters
-    # feature_stages: Tuple[int, ...] = (32, 64, 96, 128)
-    feature_stages: Tuple[int, ...] = (32, 64)
-    block_depth: int = 2
+    feature_stages: Tuple[int, ...] = (32, 64, 96, 128)
+    block_depth: int = 4
     embedding_min_frequency: float = 1.0
     embedding_max_frequency: float = 10_000.0
     embedding_dims: int = 64
@@ -84,7 +83,6 @@ class DDIMModel(nn.Module):
         return noise_rates, signal_rates
 
     def denoise(self, noisy_images, noise_rates, signal_rates, train: bool):
-        logging.info(f"{noisy_images.shape=} | {noise_rates.shape=} | {signal_rates.shape=}")
         pred_noises = self.network(noisy_images, noise_rates**2)
         pred_images = (noisy_images - noise_rates * pred_noises) / signal_rates
         return pred_noises, pred_images
@@ -95,7 +93,7 @@ class DDIMModel(nn.Module):
 
         pred_images = None
         next_noisy_images = initial_noise
-        # TODO: lax scan?
+        # # # TODO: lax scan?
         for step in range(diffusion_steps):
             noisy_images = next_noisy_images
 
@@ -108,34 +106,6 @@ class DDIMModel(nn.Module):
             next_diffusion_times = diffusion_times - step_size
             next_noise_rates, next_signal_rates = self.diffusion_schedule(next_diffusion_times)
             next_noisy_images = next_signal_rates * pred_images + next_noise_rates * pred_noises
-
-        # def _diffuse_fn(carry, step):
-        #     next_noisy_images = carry
-
-        #     # Separate noisy image into noise/image
-        #     n_images = next_noisy_images.shape[0]
-        #     ones = jnp.ones((n_images, 1, 1, 1), dtype=next_noisy_images.dtype)
-        #     diffusion_times = ones - step * step_size
-        #     noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
-        #     pred_noises, pred_images = self.denoise(
-        #         next_noisy_images, noise_rates, signal_rates, train=False
-        #     )
-
-        #     next_diffusion_times = diffusion_times - step_size
-        #     next_noise_rates, next_signal_rates = self.diffusion_schedule(
-        #         next_diffusion_times
-        #     )
-        #     next_noisy_images = (
-        #         next_signal_rates * pred_images + next_noise_rates * pred_noises
-        #     )
-
-        #     return next_noisy_images, None
-
-        # pred_images, _ = jax.lax.scan(
-        #     _diffuse_fn,
-        #     initial_noise,
-        #     jnp.arange(diffusion_steps),
-        # )
 
         return pred_images
 
@@ -226,47 +196,47 @@ class DDIM(Architecture):
     def _loss(self, predictions: jnp.ndarray, targets: jnp.ndarray):
         return optax.l2_loss(predictions, targets).mean()  # type:
 
-    @partial(jax.jit, static_argnums=0)
-    def train_step(self, batch):
-        self._rng_train, rng = jax.random.split(self._rng_train)
-
+    @partial(jax.jit, static_argnums=(0,))
+    def _train_step(self, state, batch, rng):
         def loss_fn(params):
-            outputs, mutated_vars = self._state.apply_fn(
-                {"params": params, "batch_stats": self._state.batch_stats},
-                batch,
-                rng,
-                train=True,
-                mutable=["batch_stats"],
+            outputs, mutated_vars = state.apply_fn(
+                {"params": params, "batch_stats": state.batch_stats}, batch, rng, train=True, mutable=["batch_stats"]
             )
             noises, images, pred_noises, pred_images = outputs
 
-            noise_loss = self._loss(predictions=pred_noises, targets=noises)
-            image_loss = self._loss(predictions=pred_images, targets=images)
+            noise_loss = self._loss(pred_noises, noises)
+            image_loss = self._loss(pred_images, images)
             loss = noise_loss + image_loss
             return loss, mutated_vars
 
         grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-        (loss, mutated_vars), grads = grad_fn(self._state.params)
-        new_state = self._state.apply_gradients(
+        (loss, mutated_vars), grads = grad_fn(state.params)
+        state = state.apply_gradients(
             grads=grads,
             batch_stats=mutated_vars["batch_stats"],
         )
+        return state, loss
+
+    def train_step(self, batch):
+        self._rng_train, rng = jax.random.split(self._rng_train)
+        new_state, loss = self._train_step(self._state, batch, rng)
         self._state = new_state
         self.global_step += 1
         return loss
 
-    @partial(jax.jit, static_argnums=0)
+    # @partial(jax.jit, static_argnums=(0,5))
+    def _eval_step(self, state, params, rng, batch, diffusion_steps: int):
+        variables = {"params": params, "batch_stats": state.batch_stats}
+        generated_images = state.apply_fn(variables, rng, batch.shape, diffusion_steps, method=DDIMModel.generate)
+        return generated_images
+
     def eval_step(self, batch):
         diffusion_steps = self.config.arch.diffusion.diffusion_steps
-        variables = {
-            "params": self._state.ema_params,
-            "batch_stats": self._state.batch_stats,
-        }
-        generated_images = self._state.apply_fn(
-            variables,
-            self._rng_val,
-            batch.shape,
-            diffusion_steps,
-            method=DDIMModel.generate,
+        generated_images = self._eval_step(
+            state=self._state,
+            params=self._state.ema_params,
+            rng=self._rng_val,
+            batch=batch,
+            diffusion_steps=diffusion_steps,
         )
         return generated_images

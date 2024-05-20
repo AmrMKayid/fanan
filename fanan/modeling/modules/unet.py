@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 import flax.linen as nn
 import jax
@@ -54,13 +54,11 @@ class UNetDownBlock(nn.Module):
             for i in range(self.block_depth)
         ]
 
-    def __call__(self, x: jnp.ndarray) -> Union[jnp.ndarray, List[jnp.ndarray]]:
-        skips = []
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         for block in self.residual_blocks:
             x = block(x)
-            skips.append(x)
         x = nn.avg_pool(x, window_shape=(2, 2), strides=(2, 2))
-        return x, skips
+        return x
 
 
 class UNetUpBlock(nn.Module):
@@ -82,11 +80,10 @@ class UNetUpBlock(nn.Module):
         x = jax.image.resize(x, shape=upsampled_shape, method="bilinear")
         return x
 
-    def __call__(self, x: jnp.ndarray, skips: List[jnp.ndarray]) -> jnp.ndarray:
+    def __call__(self, x: jnp.ndarray, skip: jnp.ndarray) -> jnp.ndarray:
         x = self.upsample2d(x)
+        x = jnp.concatenate([x, skip], axis=-1)
         for block in self.residual_blocks:
-            # TODO: check skips
-            # x = jnp.concatenate([x, skips.pop()], axis=-1)
             x = block(x)
         return x
 
@@ -134,17 +131,16 @@ class UNet(nn.Module):
         x = self.conv1(noisy_images)
         x = jnp.concatenate([x, embedding], axis=-1)
 
-        skip_stages = []
-        for downblock in self.down_blocks:
-            x, skips_from_down = downblock(x)
-            skip_stages.append(skips_from_down)
+        skips = []
+        for block in self.down_blocks:
+            skips.append(x)
+            x = block(x)
 
-        for residualblock in self.residual_blocks:
-            x = residualblock(x)
+        for block in self.residual_blocks:
+            x = block(x)
 
-        for upblock in self.up_blocks:
-            skips = skip_stages.pop()
-            x = upblock(x, skips)
+        for block, skip in zip(self.up_blocks, reversed(skips)):
+            x = block(x, skip)
 
         outputs = self.conv2(x)
         return outputs

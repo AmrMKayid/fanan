@@ -58,7 +58,7 @@ class DiffusionConfig(BaseConfig):
     ema_update_every: int = 1
     noise_schedule_kwargs: dict = {}
     ema_decay_kwargs: dict = {}
-    diffusion_steps: int = 70
+    diffusion_steps: int = 80
 
 
 class ArchitectureConfig(BaseConfig):

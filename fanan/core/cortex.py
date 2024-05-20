@@ -1,15 +1,13 @@
 import logging
 
 import jax
+import numpy as np
+import tensorflow as tf
 from jax.experimental import mesh_utils
 from tqdm import tqdm
 
 from fanan.config import Config
-
-# from fanan.modeling.architectures import get_architecture
 from fanan.modeling.architectures import get_architecture
-
-# from fanan.modeling.optimizers import make_optimizer
 
 
 class Cortex:
@@ -54,6 +52,7 @@ class Cortex:
         logging.info(f"{self.mesh=}")
 
         self.architecture = get_architecture(self.config)
+        self._writer = tf.summary.create_file_writer("./logs")
 
     def train(self, train_dataloader_iter, val_dataloader_iter) -> None:
         """Trains the model using the given dataset.
@@ -74,10 +73,18 @@ class Cortex:
         for step in pbar:
             batch = next(train_dataloader_iter)
             loss = self.architecture.train_step(batch=batch)
-            pbar.set_postfix({"loss": f"{loss:.5f}"})
             losses.append(loss)
 
             if step % self.config.training.eval_every_steps == 0:
-                pbar.set_description(f"{step=}, avg_loss: {sum(losses) / len(losses)}")
                 batch = next(val_dataloader_iter)
                 generated_images = self.architecture.eval_step(batch=batch)
+                with self._writer.as_default():
+                    tf.summary.image("generated", generated_images, step=step, max_outputs=8)
+
+            avg_loss = np.mean(losses)
+            pbar.set_postfix(
+                {"step_loss": f"{loss:.5f}", "avg_loss": f"{avg_loss:.5f}",}
+            )
+
+            with self._writer.as_default():
+                tf.summary.scalar("loss", avg_loss, step=step)
