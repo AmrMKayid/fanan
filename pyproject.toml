@@ -53,16 +53,21 @@ select = [
     "SIM",
     # isort
     "I",
+
+    "Q",
 ]
 ignore = [
     "F722" # forward-annotation-syntax-error (F722)
 ]
 
+fixable = ["ALL"]
 
 [tool.ruff.format]
 quote-style = "double"
 line-ending = "auto"
-docstring-code-format = false
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
 
