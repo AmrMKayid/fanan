@@ -1,0 +1,30 @@
+fanan:
+  seed: 37
+  log_interval: 10
+
+
+mesh:
+  n_data_parallel: 1
+  n_fsdp_parallel: 1
+  n_sequence_parallel: 1
+  n_tensors_parallel: 1
+
+
+data:
+  dataset_name: "oxford_flowers102"
+  batch_size: 16
+  cache: False
+  image_size: 64
+  num_channels: 3
+
+
+arch:
+  architecture_name: "ddim"
+  diffusion:
+    diffusion_steps: 80
+
+
+training:
+  total_steps: 10_000
+  eval_every_steps: 100
+
