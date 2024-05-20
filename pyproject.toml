@@ -7,7 +7,7 @@ license = "MIT License"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.11.9"
+python = "3.10.12"
 ruff = "0.4.2"
 jax = "0.4.26"
 jaxlib = "0.4.26"
@@ -27,6 +27,12 @@ jaxtyping = "0.2.28"
 pre-commit = "3.7.0"
 ipdb = "0.13.13"
 beartype = "0.18.5"
+tensorflow = "2.16.1"
+tensorflow-datasets = "4.9.4"
+pillow = "10.3.0"
+coverage = "7.5.1"
+wandb = "0.17.0"
+ml-collections = "0.1.1"
 
 
 
@@ -53,21 +59,16 @@ select = [
     "SIM",
     # isort
     "I",
-
-    "Q",
 ]
 ignore = [
     "F722" # forward-annotation-syntax-error (F722)
 ]
 
-fixable = ["ALL"]
 
 [tool.ruff.format]
 quote-style = "double"
 line-ending = "auto"
-indent-style = "space"
-skip-magic-trailing-comma = false
-docstring-code-format = true
+docstring-code-format = false
 docstring-code-line-length = "dynamic"
 
 
