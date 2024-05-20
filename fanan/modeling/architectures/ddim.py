@@ -7,7 +7,6 @@ import jax.numpy as jnp
 import optax
 from flax.core import FrozenDict
 from jax.sharding import PositionalSharding
-from tqdm import tqdm
 
 from fanan.config.base import Config
 from fanan.modeling.architectures import Architecture, register_architecture

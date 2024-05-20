@@ -83,7 +83,10 @@ class Cortex:
 
             avg_loss = np.mean(losses)
             pbar.set_postfix(
-                {"step_loss": f"{loss:.5f}", "avg_loss": f"{avg_loss:.5f}",}
+                {
+                    "step_loss": f"{loss:.5f}",
+                    "avg_loss": f"{avg_loss:.5f}",
+                }
             )
 
             with self._writer.as_default():
