@@ -30,14 +30,14 @@ jobs:
           installer-parallel: true
 
 
-      # - name: Load cached venv
-      #   uses: actions/cache/restore@v3
-      #   id: cached-poetry-dependencies
-      #   with:
-      #     path: .venv
-      #     key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      #     restore-keys: |
-      #       venv-${{ runner.os }}-
+      - name: Load cached venv
+        uses: actions/cache/restore@v3
+        id: cached-poetry-dependencies
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
