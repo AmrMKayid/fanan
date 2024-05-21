@@ -8,7 +8,7 @@ def register_attention_fn(fn):
     return fn
 
 
-from fanan.modules.attentions.self_attention import *  # noqa: E402, F403
+from fanan.modeling.modules.attentions.self_attention import *  # noqa: E402, F403
 
 
 def get_attention_fn(name: str):

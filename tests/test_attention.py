@@ -2,7 +2,7 @@ import unittest
 
 import jax.numpy as jnp
 
-from fanan.modules.attentions import self_attention
+from fanan.modeling.modules.attentions import get_attention_fn
 
 
 class TestAttention(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestAttention(unittest.TestCase):
         value = jnp.ones((self.batch_size, self.sequence_length, self.n_heads, self.head_dim), dtype=jnp.float32)
         key = jnp.ones((self.batch_size, self.sequence_length, self.n_heads, self.head_dim), dtype=jnp.float32)
 
-        result = self_attention(query, value, key)
+        result = get_attention_fn(name="self_attention")(query, value, key)
 
         expected_shape = (self.batch_size, self.sequence_length, self.n_heads, self.head_dim)
         self.assertEqual(result.shape, expected_shape)

@@ -12,16 +12,16 @@ mesh:
 
 data:
   dataset_name: "oxford_flowers102"
-  batch_size: 16
+  batch_size: 512
   cache: False
-  image_size: 64
+  image_size: 128
   num_channels: 3
 
 
 arch:
   architecture_name: "ddim"
   diffusion:
-    diffusion_steps: 80
+    diffusion_steps: 128
 
 
 training:

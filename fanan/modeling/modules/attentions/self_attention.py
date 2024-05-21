@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from beartype import beartype as typechecker
 from jaxtyping import Array, Float, jaxtyped
 
-from fanan.modules.attentions import register_attention_fn
+from fanan.modeling.modules.attentions import register_attention_fn
 
 
 @register_attention_fn
