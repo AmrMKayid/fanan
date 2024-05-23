@@ -41,7 +41,7 @@ class Cortex:
                 self.config.mesh.n_sequence_parallel,
                 self.config.mesh.n_tensors_parallel,
             ),
-            contiguous_submeshes=True,
+            contiguous_submeshes=False,
         )
         logging.info(f"{self.devices=}")
 
