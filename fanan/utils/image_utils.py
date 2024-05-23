@@ -1,3 +1,6 @@
+from typing import Tuple, Union
+
+import jax
 import tensorflow as tf
 
 
@@ -5,7 +8,7 @@ def normalize_to_neg_one_to_one(img):
     return img * 2 - 1
 
 
-def crop_and_resize(image: tf.Tensor, resolution: list[int] = [64, 64]) -> tf.Tensor:
+def crop_and_resize(image: tf.Tensor, resolution: tuple[int, int] = (64, 64)) -> tf.Tensor:
     height, width = tf.shape(image)[0], tf.shape(image)[1]
     crop_size = tf.minimum(height, width)
     # image = image[
@@ -38,3 +41,16 @@ def process_image(
     # image = normalize_to_neg_one_to_one(image)
     image = tf.image.convert_image_dtype(image, input_dtype)
     return image
+
+
+def upsample2d(x, scale: Union[int, Tuple[int, int]], method: str = "bilinear"):
+    b, h, w, c = x.shape
+
+    if isinstance(scale, int):
+        h_out, w_out = scale * h, scale * w
+    elif len(scale) == 2:
+        h_out, w_out = scale[0] * h, scale[1] * w
+    else:
+        raise ValueError("scale argument should be either int" "or Tuple[int, int]")
+
+    return jax.image.resize(x, shape=(b, h_out, w_out, c), method=method)

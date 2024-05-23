@@ -7,7 +7,7 @@ import tensorflow_datasets as tfds
 from ml_collections.config_dict import ConfigDict
 
 from fanan.config.base import Config, DataConfig
-from fanan.config.image_utils import process_image
+from fanan.utils.image_utils import process_image
 
 
 class DefaultDataConfig(DataConfig):

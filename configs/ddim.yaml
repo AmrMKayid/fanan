@@ -26,7 +26,7 @@ arch:
   embedding_dim: 32
   embedding_max_frequency: 1000.0
   diffusion:
-    diffusion_steps: 128
+    diffusion_steps: 10
 
 
 training:

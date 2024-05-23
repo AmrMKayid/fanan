@@ -65,8 +65,8 @@ class DDIMModel(nn.Module):
             embedding_max_frequency=cfg.embedding_max_frequency,
         )
 
-    def __call__(self, images, rng, train: bool):
-        images = self.normalizer(images, use_running_average=not train)
+    def __call__(self, images, rng, is_training: bool):
+        images = self.normalizer(images, use_running_average=not is_training)
 
         rng_noises, rng_times = jax.random.split(rng)
         noises = jax.random.normal(rng_noises, images.shape, images.dtype)
@@ -74,7 +74,7 @@ class DDIMModel(nn.Module):
         noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
         noisy_images = signal_rates * images + noise_rates * noises
 
-        pred_noises, pred_images = self.denoise(noisy_images, noise_rates, signal_rates, train=train)
+        pred_noises, pred_images = self.denoise(noisy_images, noise_rates, signal_rates, is_training=is_training)
         return noises, images, pred_noises, pred_images
 
     def diffusion_schedule(
@@ -94,8 +94,8 @@ class DDIMModel(nn.Module):
 
         return noise_rates, signal_rates
 
-    def denoise(self, noisy_images, noise_rates, signal_rates, train: bool):
-        pred_noises = self.network(noisy_images, noise_rates**2)
+    def denoise(self, noisy_images, noise_rates, signal_rates, is_training: bool):
+        pred_noises = self.network(noisy_images, noise_rates**2, is_training=is_training)
         pred_images = (noisy_images - noise_rates * pred_noises) / signal_rates
         return pred_noises, pred_images
 
@@ -113,7 +113,7 @@ class DDIMModel(nn.Module):
             ones = jnp.ones((n_images, 1, 1, 1), dtype=initial_noise.dtype)
             diffusion_times = ones - step * step_size
             noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
-            pred_noises, pred_images = self.denoise(noisy_images, noise_rates, signal_rates, train=False)
+            pred_noises, pred_images = self.denoise(noisy_images, noise_rates, signal_rates, is_training=False)
 
             next_diffusion_times = diffusion_times - step_size
             next_noise_rates, next_signal_rates = self.diffusion_schedule(next_diffusion_times)
@@ -169,7 +169,7 @@ class DDIM(Architecture):
             key_init,
             self.initialization_input,
             key_diffusion,
-            train=True,
+            is_training=False,
         )
 
         tx, lr_schedule = self._create_optimizer()
@@ -187,12 +187,15 @@ class DDIM(Architecture):
         tabulate_fn = nn.tabulate(
             DDIMModel(config=self._config.arch),
             key_init,
-            show_repeated=True,
-            compute_flops=True,
-            compute_vjp_flops=True,
         )
 
-        print(tabulate_fn(self.initialization_input, key_diffusion, False))
+        print(
+            tabulate_fn(
+                images=self.initialization_input,
+                rng=key_diffusion,
+                is_training=False,
+            )
+        )
 
         return state, lr_schedule
 
@@ -212,7 +215,11 @@ class DDIM(Architecture):
     def _train_step(self, state, batch, rng):
         def loss_fn(params):
             outputs, mutated_vars = state.apply_fn(
-                {"params": params, "batch_stats": state.batch_stats}, batch, rng, train=True, mutable=["batch_stats"]
+                {"params": params, "batch_stats": state.batch_stats},
+                batch,
+                rng,
+                is_training=True,
+                mutable=["batch_stats"],
             )
             noises, images, pred_noises, pred_images = outputs
 
