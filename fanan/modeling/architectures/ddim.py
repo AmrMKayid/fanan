@@ -156,8 +156,7 @@ class DDIM(Architecture):
         image_size = self.config.data.image_size
         shape = (
             self.config.data.batch_size,
-            image_size,
-            image_size,
+            *image_size,
             self.config.data.num_channels,
         )
         return jnp.ones(shape, dtype=jnp.float32)
