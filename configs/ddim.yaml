@@ -4,7 +4,7 @@ fanan:
 
 
 mesh:
-  n_data_parallel: 1
+  n_data_parallel: 4
   n_fsdp_parallel: 1
   n_sequence_parallel: 1
   n_tensors_parallel: 1
