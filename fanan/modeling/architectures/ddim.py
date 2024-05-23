@@ -7,12 +7,32 @@ import jax.numpy as jnp
 import optax
 from flax.core import FrozenDict
 from jax.sharding import PositionalSharding
+from ml_collections.config_dict import ConfigDict
 
-from fanan.config.base import Config
+from fanan.config.base import ArchitectureConfig, Config
 from fanan.modeling.architectures import Architecture, register_architecture
 from fanan.modeling.modules.state import TrainState
 from fanan.modeling.modules.unet import UNet
 from fanan.optimization import lr_schedules, optimizers
+
+
+class DDIMConfig(ArchitectureConfig):
+    def __init__(self, initial_dictionary: dict | None = None, **kwargs) -> None:
+        super().__init__(initial_dictionary=initial_dictionary, **kwargs)
+        self.architecture_name: str = "ddim"
+
+        # UNet parameters
+        self.image_size: Tuple[int, int] = (64, 64)
+        self.feature_stages: Tuple[int, ...] = (32, 64, 96, 128)
+        self.block_depth: int = 4
+        self.embedding_min_frequency: float = 1.0
+        self.embedding_max_frequency: float = 10_000.0
+        self.embedding_dims: int = 64
+
+        # Sampling (reverse diffusion) parameters
+        self.min_signal_rate: float = 0.02
+        self.max_signal_rate: float = 0.95
+        self.update(ConfigDict(initial_dictionary).copy_and_resolve_references())
 
 
 class DDIMTrainState(TrainState):
@@ -31,25 +51,18 @@ class DDIMTrainState(TrainState):
 
 
 class DDIMModel(nn.Module):
-    # UNet parameters
-    feature_stages: Tuple[int, ...] = (32, 64, 96, 128)
-    block_depth: int = 4
-    embedding_min_frequency: float = 1.0
-    embedding_max_frequency: float = 10_000.0
-    embedding_dims: int = 64
-
-    # Sampling (reverse diffusion) parameters
-    min_signal_rate: float = 0.02
-    max_signal_rate: float = 0.95
+    config: DDIMConfig
 
     def setup(self):
+        cfg = self.config
         self.normalizer = nn.BatchNorm(use_bias=False, use_scale=False)
         self.network = UNet(
-            feature_stages=self.feature_stages,
-            block_depth=self.block_depth,
-            embedding_dim=self.embedding_dims,
-            embedding_min_frequency=self.embedding_min_frequency,
-            embedding_max_frequency=self.embedding_max_frequency,
+            image_size=cfg.image_size,
+            feature_stages=cfg.feature_stages,
+            block_depth=cfg.block_depth,
+            embedding_dim=cfg.embedding_dims,
+            embedding_min_frequency=cfg.embedding_min_frequency,
+            embedding_max_frequency=cfg.embedding_max_frequency,
         )
 
     def __call__(self, images, rng, train: bool):
@@ -126,6 +139,7 @@ class DDIMModel(nn.Module):
 class DDIM(Architecture):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
+        self._config.arch = DDIMConfig(config.arch)
         self.global_step = 0
         self._current_rng = self._init_rng = jax.random.PRNGKey(config.fanan.seed)
         self.sharding = PositionalSharding(jax.devices())
@@ -151,7 +165,7 @@ class DDIM(Architecture):
     def _create_state(self):
         self._current_rng, key_init, key_diffusion = jax.random.split(self._init_rng, 3)
 
-        model = DDIMModel()
+        model = DDIMModel(config=self._config.arch)
         variables = model.init(
             key_init,
             self.initialization_input,
@@ -172,7 +186,7 @@ class DDIM(Architecture):
 
         # Compute FLOPs and Summary
         tabulate_fn = nn.tabulate(
-            DDIMModel(),
+            DDIMModel(config=self._config.arch),
             key_init,
             show_repeated=True,
             compute_flops=True,
