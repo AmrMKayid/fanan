@@ -33,10 +33,10 @@ class DataConfig(ConfigDict):
     def __init__(self, initial_dictionary: dict | None = None, **kwargs) -> None:
         super().__init__(initial_dictionary=initial_dictionary, **kwargs)
         self.dataset_name: str = "mnist"
+        self.image_size: list[int] = [64, 64]
+        self.num_channels: int = 3
         self.batch_size: int = 64
         self.cache: bool = False
-        self.image_size: int = 512
-        self.num_channels: int = 3
 
 
 class DiffusionConfig(ConfigDict):

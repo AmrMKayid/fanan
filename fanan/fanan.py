@@ -5,7 +5,7 @@ from rich.logging import RichHandler
 
 from fanan.config import Config
 from fanan.core.cortex import Cortex
-from fanan.data.tf_data import get_dataset
+from fanan.data.tf_data import Dataset
 from fanan.utils.parser import parse_args
 
 logging.basicConfig(
@@ -32,12 +32,12 @@ def main() -> None:
     config = Config.read_config_from_yaml(args.config_path)
     logging.info(f"{config=}")
 
-    train_dl, val_dl = get_dataset(config)
+    dataset = Dataset(config=config)
 
     cortex = Cortex(config)
     cortex.train(
-        train_dataloader_iter=train_dl,
-        val_dataloader_iter=val_dl,
+        train_dataloader_iter=dataset.train_iter,
+        val_dataloader_iter=dataset.val_iter,
     )
 
 
