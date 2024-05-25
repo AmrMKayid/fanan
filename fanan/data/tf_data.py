@@ -37,7 +37,8 @@ class Dataset:
     def get_dataset_iterator(self, split: str = "train") -> Any:
         if self._config.data.batch_size % jax.device_count() > 0:
             raise ValueError(
-                f"batch size {self._config.data.batch_size} must be divisible by the number of devices {jax.device_count()}"
+                f"batch size {self._config.data.batch_size} must be divisible "
+                f"by the number of devices {jax.device_count()}"
             )
 
         batch_size = self._config.data.batch_size // jax.process_count()

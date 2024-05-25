@@ -10,7 +10,8 @@ from jax.sharding import PositionalSharding
 from ml_collections.config_dict import ConfigDict
 
 from fanan.config.base import ArchitectureConfig, Config
-from fanan.modeling.architectures import Architecture, register_architecture
+from fanan.modeling.architectures.base import Architecture
+from fanan.modeling.architectures.registry import register_architecture
 from fanan.modeling.modules.state import TrainState
 from fanan.modeling.modules.unet import UNet
 from fanan.optimization import lr_schedules, optimizers
@@ -209,7 +210,8 @@ class DDIM(Architecture):
         return optimizer, lr_schedule
 
     def _loss(self, predictions: jnp.ndarray, targets: jnp.ndarray):
-        return optax.l2_loss(predictions, targets).mean()  # type:
+        # l1 loss / mean_absolute_error
+        return jnp.abs(predictions - targets).mean()
 
     @partial(jax.jit, static_argnums=(0,))
     def _train_step(self, state, batch, rng):
@@ -243,7 +245,7 @@ class DDIM(Architecture):
         self.global_step += 1
         return loss
 
-    # @partial(jax.jit, static_argnums=(0,5))
+    @partial(jax.jit, static_argnums=(0, 5))
     def _eval_step(self, state, params, rng, batch, diffusion_steps: int):
         variables = {"params": params, "batch_stats": state.batch_stats}
         generated_images = state.apply_fn(variables, rng, batch.shape, diffusion_steps, method=DDIMModel.generate)

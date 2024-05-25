@@ -85,7 +85,7 @@ class AttentionKernel(nn.Module):
         attention_scores = (attention_scores * scale).astype(query_states.dtype)  # [batch, num_heads, seq, seq]
 
         # TODO: add mask
-        mask = None
+        # mask = None
 
         attention_probs = jax.nn.softmax(attention_scores, axis=-1)
 
