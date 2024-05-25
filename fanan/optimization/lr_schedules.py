@@ -7,14 +7,15 @@ def create_lr_schedule(config: Config):
     lr_config = config.optimization.lr_schedule
     schedule_type = lr_config.schedule_type
     lr_kwargs = lr_config.lr_kwargs
-    if schedule_type == "constant":
-        return optax.constant_schedule(**lr_kwargs)
-    elif schedule_type == "constant_warmup":
-        return _constant_with_warmup(**lr_kwargs)
-    elif schedule_type == "cosine":
-        return _cosine_with_warmup(**lr_kwargs)
-    else:
-        raise NotImplementedError(schedule_type)
+    match schedule_type:
+        case "constant":
+            return optax.constant_schedule(**lr_kwargs)
+        case "constant_warmup":
+            return _constant_with_warmup(**lr_kwargs)
+        case "cosine":
+            return _cosine_with_warmup(**lr_kwargs)
+        case _:
+            raise NotImplementedError(schedule_type)
 
 
 def _constant_with_warmup(value: float, warmup_steps: int):

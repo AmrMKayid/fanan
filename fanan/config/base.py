@@ -28,7 +28,7 @@ class MeshConfig(ConfigDict):
 
 
 class DataConfig(ConfigDict):
-    """data configuration class."""
+    """Data configuration class."""
 
     def __init__(self, initial_dictionary: dict | None = None, **kwargs) -> None:
         super().__init__(initial_dictionary=initial_dictionary, **kwargs)
@@ -46,7 +46,7 @@ class DiffusionConfig(ConfigDict):
         super().__init__(initial_dictionary=initial_dictionary, **kwargs)
         self.timesteps: int = 1000
         self.beta_1: float = 1e-4
-        self.beta_T: float = 0.02
+        self.beta_t: float = 0.02
         self.timestep_size: float = 0.001
         self.noise_schedule: str = "linear"
         self.ema_decay: float = 0.999
@@ -94,7 +94,7 @@ class OptimizationConfig(ConfigDict):
 
 
 class TrainingConfig(ConfigDict):
-    """training configuration class."""
+    """Training configuration class."""
 
     def __init__(self, initial_dictionary: dict | None = None, **kwargs) -> None:
         super().__init__(initial_dictionary=initial_dictionary, **kwargs)
@@ -107,7 +107,7 @@ class TrainingConfig(ConfigDict):
 
 
 class FananConfig(ConfigDict):
-    """fanan configuration class."""
+    """Fanan configuration class."""
 
     def __init__(self, initial_dictionary: dict | None = None, **kwargs) -> None:
         super().__init__(initial_dictionary=initial_dictionary, **kwargs)
@@ -128,7 +128,7 @@ class Config(ConfigDict):
 
     @classmethod
     def read_config_from_yaml(cls, file_path: str):
-        with open(file_path) as file:
+        with open(file_path, encoding="utf-8") as file:
             updates = yaml.safe_load(file)
 
         cfg = cls()

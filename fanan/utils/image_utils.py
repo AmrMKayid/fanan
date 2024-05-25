@@ -51,6 +51,6 @@ def upsample2d(x, scale: Union[int, Tuple[int, int]], method: str = "bilinear"):
     elif len(scale) == 2:
         h_out, w_out = scale[0] * h, scale[1] * w
     else:
-        raise ValueError("scale argument should be either int" "or Tuple[int, int]")
+        raise ValueError("scale argument should be either int or Tuple[int, int]")
 
     return jax.image.resize(x, shape=(b, h_out, w_out, c), method=method)

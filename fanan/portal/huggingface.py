@@ -46,7 +46,8 @@ def load_tokenizer(
     local_cache_dir: str | None = None,
     trust_remote_code: bool = True,
 ) -> PreTrainedTokenizer | PreTrainedTokenizerFast:
-    """Load a tokenizer from a model name or path, with optional revision and local cache directory."""
+    """Load a tokenizer from a model name or path, with optional revision and
+    local cache directory."""
     if _is_url_like(model_name_or_path):
         if revision is not None:
             raise ValueError("revision is not supported for URLs")
@@ -62,5 +63,5 @@ def load_tokenizer(
             os.path.join(local_cache_dir, base_path),
             trust_remote_code=trust_remote_code,
         )
-    else:
-        return AutoTokenizer.from_pretrained(model_name_or_path, revision=revision, trust_remote_code=trust_remote_code)
+
+    return AutoTokenizer.from_pretrained(model_name_or_path, revision=revision, trust_remote_code=trust_remote_code)

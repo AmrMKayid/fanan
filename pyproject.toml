@@ -51,6 +51,8 @@ ruff = "0.4.2"
 pre-commit = "3.7.0"
 ipdb = "0.13.13"
 coverage = "7.5.1"
+pylint = "3.2.2"
+docformatter = "1.7.5"
 
 [build-system]
 requires = ["poetry-core"]
@@ -87,6 +89,15 @@ line-ending = "auto"
 docstring-code-format = false
 docstring-code-line-length = "dynamic"
 
+
+[tool.pylint]
+disable = [
+  "missing-module-docstring",
+  "missing-function-docstring",
+  "missing-class-docstring",
+  "line-too-long",
+  "logging-fstring-interpolation",
+]
 
 [tool.poetry.scripts]
 fanan = 'fanan.fanan:main'
